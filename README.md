@@ -42,6 +42,10 @@ node tools/generate-voice.mjs
 On macOS this uses the built-in `say` voices — Daniel (English UK) for
 English, Mónica for Spanish — free and offline (override with `--voice`).
 An `OPENAI_API_KEY` or `ELEVENLABS_API_KEY` unlocks higher quality voices.
+Each locale speaks with its own voice: esES (Mónica), esMX (Paulina) and
+enUS (Daniel) on macOS. For cloud providers, pick per-locale voices with
+`--voice-id esMX=<id>,esES=<id>,enUS=<id>` or env vars like
+`ELEVENLABS_VOICE_ID_ESMX` (a global `ELEVENLABS_VOICE_ID` is the fallback).
 Audio lands in `media/audio/` (git-ignored) plus a manifest the addon
 reads: `/reload` in game and every event plays a real voice line — up to
 three variants per event kind, randomly chosen. `/nar voice` toggles it.

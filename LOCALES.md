@@ -92,7 +92,7 @@ Skip it and improvisation falls back to your static phrases.
 Spoken narration is optional per locale: the lines live in the `LINES`
 table of `tools/generate-voice.mjs` (written for the voice, no
 placeholders). A text-only locale simply falls back to text + game sounds;
-add voice lines there and run the tool to give it speech.
+add voice lines there and run the tool to give it speech. Voices resolve per locale (macOS `say` picks native voices like Paulina for esMX; cloud providers take `--voice-id <locale>=<id>` or `<PROVIDER>_VOICE_ID_<LOCALE>` env vars).
 
 ## AI packs
 

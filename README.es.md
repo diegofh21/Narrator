@@ -43,6 +43,10 @@ node tools/generate-voice.mjs
 En macOS usa las voces nativas de `say` — Daniel (inglés británico) para
 inglés, Mónica para español — gratis y offline (cámbialas con `--voice`).
 Con `OPENAI_API_KEY` o `ELEVENLABS_API_KEY` obtienes voces de mayor calidad.
+Cada idioma habla con su propia voz: esES (Mónica), esMX (Paulina) y enUS
+(Daniel) en macOS. En los proveedores de nube eliges voz por idioma con
+`--voice-id esMX=<id>,esES=<id>,enUS=<id>` o variables como
+`ELEVENLABS_VOICE_ID_ESMX` (la global `ELEVENLABS_VOICE_ID` sirve de fallback).
 El audio queda en `media/audio/` (fuera del repo) más un manifiesto que el
 addon lee: `/reload` en el juego y cada evento reproduce su línea real —
 hasta tres variantes por evento, elegidas al azar. `/nar voice` lo alterna.

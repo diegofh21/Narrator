@@ -1,5 +1,5 @@
 -- Narrator — voice manifest (auto-managed).
--- Produced by tools/generate-voice.mjs (esES:40, enUS:40).
+-- Produced by tools/generate-voice.mjs (esES:40, esMX:40, enUS:40).
 -- Safe to delete; the addon then falls back to text + game sounds.
 
 Narrator = Narrator or {}
@@ -74,6 +74,76 @@ Narrator.VOICE["esES"] = {
     "esES/login_a39386a860.wav",
   },
 }
+Narrator.VOICE["esMX"] = {
+  death = {
+    "esMX/death_d7348733df.wav",
+    "esMX/death_cd35f87306.wav",
+    "esMX/death_5c42576bbe.wav",
+  },
+  pvpdeath = {
+    "esMX/pvpdeath_0d0daaa334.wav",
+    "esMX/pvpdeath_269812cbdf.wav",
+    "esMX/pvpdeath_8b38db2b9e.wav",
+  },
+  milestone = {
+    "esMX/milestone_e4841fcabf.wav",
+    "esMX/milestone_a3cbfb5489.wav",
+    "esMX/milestone_0209bb9ac8.wav",
+  },
+  fall = {
+    "esMX/fall_1cb74c8059.wav",
+    "esMX/fall_827b9ca7b3.wav",
+    "esMX/fall_86f4656581.wav",
+  },
+  fire = {
+    "esMX/fire_72a63adea8.wav",
+    "esMX/fire_6c199d25fd.wav",
+    "esMX/fire_a5507177d6.wav",
+  },
+  drown = {
+    "esMX/drown_11a4d77870.wav",
+    "esMX/drown_09c592bb5f.wav",
+    "esMX/drown_04abeea7e6.wav",
+  },
+  fatigue = {
+    "esMX/fatigue_74a0e02eba.wav",
+    "esMX/fatigue_6138bb4775.wav",
+  },
+  unknown = {
+    "esMX/unknown_79a12c9d55.wav",
+    "esMX/unknown_9d9375a8c5.wav",
+  },
+  crit = {
+    "esMX/crit_7270f2fa77.wav",
+    "esMX/crit_4d6ddfa083.wav",
+    "esMX/crit_432a29ed18.wav",
+  },
+  levelup = {
+    "esMX/levelup_fb51824167.wav",
+    "esMX/levelup_60db73c655.wav",
+    "esMX/levelup_79e97bb2e2.wav",
+  },
+  loot = {
+    "esMX/loot_595d0b5263.wav",
+    "esMX/loot_21bcada18d.wav",
+    "esMX/loot_c564a24962.wav",
+  },
+  legendary = {
+    "esMX/legendary_c04a93797a.wav",
+    "esMX/legendary_36aa0c04e7.wav",
+    "esMX/legendary_4a1a3eb0ec.wav",
+  },
+  pvpkill = {
+    "esMX/pvpkill_1829f6ca04.wav",
+    "esMX/pvpkill_ca91c0c110.wav",
+    "esMX/pvpkill_7964c2a487.wav",
+  },
+  login = {
+    "esMX/login_4fea21dcc0.wav",
+    "esMX/login_832aa3d14e.wav",
+    "esMX/login_8857f7cc55.wav",
+  },
+}
 Narrator.VOICE["enUS"] = {
   death = {
     "enUS/death_b4bcec5302.wav",
@@ -144,4 +214,3 @@ Narrator.VOICE["enUS"] = {
     "enUS/login_f083e462fb.wav",
   },
 }
-Narrator.VOICE["esMX"] = Narrator.VOICE["esES"]

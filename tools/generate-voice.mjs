@@ -181,29 +181,54 @@ const LINES = {
   },
 };
 
+// esMX mirrors esES text (the lines are already neutral Spanish) but gets its
+// own audio renders, so it can speak with a Latin American voice. Copy the
+// esES block above into its own esMX entry if you want the words to diverge.
+LINES.esMX = LINES.esES;
+
 // Preferred macOS voices, in order (matched against `say -v ?`).
 const SAY_PREFS = {
   enUS: ["Daniel (English (UK))", "Reed (English (UK))", "Daniel", "Samantha"],
   esES: ["Mónica", "Monica", "Sandy (Spanish (Spain))", "Reed (Spanish (Spain))"],
+  esMX: ["Paulina", "Sandy (Spanish (Mexico))", "Reed (Spanish (Mexico))", "Rocko (Spanish (Mexico))"],
 };
-const SAY_LOCALE = { enUS: "en_GB", esES: "es_ES" };
+const SAY_LOCALE = { enUS: "en_GB", esES: "es_ES", esMX: "es_MX" };
+
+// Fallback voices for the cloud providers (override per locale, see below).
+const OPENAI_TTS_FALLBACK = "onyx";
+const ELEVEN_VOICE_FALLBACK = "JBFqnCBsd6RMkjVDRZzb"; // "George"
+
+// Per-locale voice resolution for cloud providers, first match wins:
+//   --voice-id esMX=...   (CLI flag, repeatable comma pairs)
+//   ELEVENLABS_VOICE_ID_ESMX / OPENAI_TTS_VOICE_ESMX  (env, locale appended)
+//   ELEVENLABS_VOICE_ID / OPENAI_TTS_VOICE            (env, global)
+//   built-in fallback
+function cloudVoiceFor(provider, locale, flagMap) {
+  const base = provider === "openai" ? "OPENAI_TTS_VOICE" : "ELEVENLABS_VOICE_ID";
+  const fallback = provider === "openai" ? OPENAI_TTS_FALLBACK : ELEVEN_VOICE_FALLBACK;
+  return flagMap[locale]
+    || process.env[base + "_" + locale.toUpperCase()]
+    || process.env[base]
+    || fallback;
+}
 
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const out = { locales: ["esES", "enUS"], rate: 155, provider: null, voice: {}, dry: false };
+  const out = { locales: ["esES", "esMX", "enUS"], rate: 155, provider: null, voice: {}, voiceId: {}, dry: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--locales") out.locales = (argv[++i] || "").split(",").map(s => s.trim()).filter(Boolean);
     else if (a === "--rate") out.rate = parseInt(argv[++i], 10) || 155;
     else if (a === "--provider") out.provider = argv[++i];
     else if (a === "--dry") out.dry = true;
-    else if (a === "--voice") {
+    else if (a === "--voice" || a === "--voice-id") {
+      const target = a === "--voice" ? out.voice : out.voiceId;
       for (const pair of (argv[++i] || "").split(",")) {
         const [loc, ...rest] = pair.split("=").map(s => s.trim());
-        if (loc && rest.length) out.voice[loc] = rest.join("=");
+        if (loc && rest.length) target[loc] = rest.join("=");
       }
     }
   }
@@ -249,7 +274,7 @@ async function renderSay(text, wavPath, voice, rate) {
   ]);
 }
 
-async function renderOpenAI(text, mp3Path) {
+async function renderOpenAI(text, mp3Path, voice) {
   const base = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
   const res = await fetch(base + "/audio/speech", {
     method: "POST",
@@ -259,7 +284,7 @@ async function renderOpenAI(text, mp3Path) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts",
-      voice: process.env.OPENAI_TTS_VOICE || "onyx",
+      voice: voice,
       input: text,
       response_format: "mp3",
     }),
@@ -268,8 +293,7 @@ async function renderOpenAI(text, mp3Path) {
   writeFileSync(mp3Path, Buffer.from(await res.arrayBuffer()));
 }
 
-async function renderEleven(text, mp3Path) {
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb"; // "George"
+async function renderEleven(text, mp3Path, voiceId) {
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
     method: "POST",
     headers: {
@@ -306,8 +330,9 @@ function renderManifest(packs) {
     }
     out.push("}");
   }
-  // esMX aliases esES wholesale in the locales; mirror that for voice.
-  if (packs.some(p => p.locale === "esES")) {
+  // esMX aliases esES in the text locales; keep that for voice only when it
+  // wasn't rendered as its own pack (own accent/voice).
+  if (packs.some(p => p.locale === "esES") && !packs.some(p => p.locale === "esMX")) {
     out.push('Narrator.VOICE["esMX"] = Narrator.VOICE["esES"]');
   }
   out.push("");
@@ -336,8 +361,9 @@ async function main() {
     const dir = join(AUDIO_DIR, locale);
     mkdirSync(dir, { recursive: true });
 
-    let sayVoice;
+    let sayVoice, cloudVoice;
     if (provider === "say") sayVoice = await sayVoiceFor(locale, args.voice[locale]);
+    else cloudVoice = cloudVoiceFor(provider, locale, args.voiceId);
 
     const files = {};
     let count = 0;
@@ -361,15 +387,15 @@ async function main() {
           continue;
         }
         if (provider === "say") await renderSay(text, path, sayVoice, args.rate);
-        else if (provider === "openai") await renderOpenAI(text, path);
-        else if (provider === "elevenlabs") await renderEleven(text, path);
+        else if (provider === "openai") await renderOpenAI(text, path, cloudVoice);
+        else if (provider === "elevenlabs") await renderEleven(text, path, cloudVoice);
         else throw new Error("unknown provider " + provider);
         files[kind].push(name);
         count++;
       }
     }
     packs.push({ locale, files, count });
-    console.log(`${count} lines${sayVoice ? ` (voice: ${sayVoice})` : ""}`);
+    console.log(`${count} lines (voice: ${sayVoice || cloudVoice})`);
   }
 
   if (!packs.length) {
