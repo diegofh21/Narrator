@@ -19,13 +19,25 @@
 //
 // Requires Node 18+ (global fetch).
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GEN_FILE = join(ROOT, "Locale", "gen.lua");
 const LOCALE_DIR = join(ROOT, "Locale");
+
+// Auto-load .env from the repo root (KEY=VALUE lines, # comments), so users
+// don't need --env-file or exports. Real environment variables win.
+if (existsSync(join(ROOT, ".env"))) {
+  for (const line of readFileSync(join(ROOT, ".env"), "utf8").split("\n")) {
+    if (line.trim().startsWith("#")) continue;
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!m) continue;
+    const value = m[2].replace(/^["']|["']$/g, "");
+    if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+  }
+}
 
 const KINDS = [
   "death", "pvpdeath", "milestone", "fall", "fire", "drown", "fatigue",

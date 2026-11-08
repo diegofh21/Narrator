@@ -33,6 +33,18 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const AUDIO_DIR = join(ROOT, "media", "audio");
 const MANIFEST = join(ROOT, "Locale", "voice.lua");
 
+// Auto-load .env from the repo root (KEY=VALUE lines, # comments), so users
+// don't need --env-file or exports. Real environment variables win.
+if (existsSync(join(ROOT, ".env"))) {
+  for (const line of readFileSync(join(ROOT, ".env"), "utf8").split("\n")) {
+    if (line.trim().startsWith("#")) continue;
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+    if (!m) continue;
+    const value = m[2].replace(/^["']|["']$/g, "");
+    if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+  }
+}
+
 const KINDS = [
   "death", "pvpdeath", "milestone", "fall", "fire", "drown", "fatigue",
   "unknown", "crit", "levelup", "loot", "legendary", "pvpkill", "login",
@@ -243,10 +255,36 @@ function parseArgs(argv) {
 
 function pickProvider(args) {
   if (args.provider) return args.provider;
-  if (process.platform === "darwin") return "say";
   if (process.env.ELEVENLABS_API_KEY) return "elevenlabs";
   if (process.env.OPENAI_API_KEY) return "openai";
-  return "say";
+  if (process.platform === "darwin") return "say";
+  return "say"; // pre-flight check below explains the options if it can't run
+}
+
+function checkProvider(provider) {
+  if (provider === "elevenlabs" && !process.env.ELEVENLABS_API_KEY) {
+    console.error("No ELEVENLABS_API_KEY found.");
+    console.error("  1. Sign up at https://elevenlabs.io (free tier ~10 min/month)");
+    console.error("  2. Profile -> API Keys -> Create API Key");
+    console.error("  3. Put it in .env at the repo root (see .env.example):");
+    console.error('       ELEVENLABS_API_KEY=your_key_here');
+    return false;
+  }
+  if (provider === "openai" && !process.env.OPENAI_API_KEY) {
+    console.error("No OPENAI_API_KEY found.");
+    console.error("  1. Sign up at https://platform.openai.com and add billing (cents per pack)")
+    console.error("  2. API Keys -> Create new secret key");
+    console.error("  3. Put it in .env at the repo root (see .env.example):");
+    console.error('       OPENAI_API_KEY=sk-your_key_here');
+    return false;
+  }
+  if (provider === "say" && process.platform !== "darwin") {
+    console.error("The 'say' provider only exists on macOS.");
+    console.error("Set ELEVENLABS_API_KEY or OPENAI_API_KEY in .env (see .env.example),");
+    console.error("or copy the media/ folder from a Mac.");
+    return false;
+  }
+  return true;
 }
 
 async function sayVoiceFor(locale, override) {
@@ -348,6 +386,7 @@ function renderManifest(packs) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const provider = pickProvider(args);
+  if (!checkProvider(provider)) process.exit(1);
   const ext = provider === "say" ? "wav" : "mp3";
   console.log(`provider: ${provider}  rate: ${args.rate}  locales: ${args.locales.join(",")}`);
 
