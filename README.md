@@ -31,6 +31,25 @@ centered, elegant. (Drag it to move it; it remembers.)
 Phrases are context-aware where it matters: the narrator knows the zone,
 the time of day and your lifetime death count.
 
+## Spoken narration
+
+The narrator talks. Render spoken lines with:
+
+```
+node tools/generate-voice.mjs
+```
+
+On macOS this uses the built-in `say` voices — Daniel (English UK) for
+English, Mónica for Spanish — free and offline (override with `--voice`).
+An `OPENAI_API_KEY` or `ELEVENLABS_API_KEY` unlocks higher quality voices.
+Audio lands in `media/audio/` (git-ignored) plus a manifest the addon
+reads: `/reload` in game and every event plays a real voice line — up to
+three variants per event kind, randomly chosen. `/nar voice` toggles it.
+
+Spoken lines are written *for* the voice (no dynamic names or numbers), so
+audio is per-event while the text plate keeps the exact phrase with names
+and amounts.
+
 ## Not always static — three phrase sources
 
 `/nar style` controls where lines come from:
@@ -82,6 +101,7 @@ guess until the game ships its first build notes — adjust if needed.
 /nar demo       a short gala with a bit of everything
 /nar interval <s>   min seconds between minor narrations
 /nar crit <0.1-1>   crit threshold as a fraction of max health
+/nar voice     spoken narration on / off
 /nar sound      mute / unmute
 /nar media      use your own mp3s (see below)
 /nar stats      your death & glory counters
@@ -103,8 +123,11 @@ Core.lua                    events, i18n merger, phrase picker, generator, slash
 Toast.lua                   the BG3-style plate (black, gold border, Morpheus)
 Locale/enUS.lua             DEFAULT locale + fallback base (keep complete!)
 Locale/esES.lua, esMX.lua   Spanish (esMX aliases esES)
-Locale/gen.lua              AI packs (auto-managed by tools/)
+Locale/gen.lua              AI phrase packs (auto-managed by tools/)
+Locale/voice.lua            spoken-line manifest (auto-managed by tools/)
 tools/refresh-phrases.mjs   AI phrase generator (Z.ai / OpenAI / Ollama)
+tools/generate-voice.mjs    TTS voice line renderer (say / OpenAI / ElevenLabs)
+media/audio/                rendered voice lines (git-ignored, regenerate anytime)
 LOCALES.md                  how to add a language
 ```
 

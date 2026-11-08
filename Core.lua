@@ -43,6 +43,7 @@ local DEFAULTS = {
     critPct       = 0.35,      -- crit must be >= this fraction of max health
     critMin       = 60,        -- ...and at least this much raw damage
     sound         = true,
+    voice         = true,     -- spoken lines from media/audio/ when generated
     loginGreeting = true,
     media         = false,     -- play custom mp3s from media/ if present
 }
@@ -189,6 +190,20 @@ function N:PlayKindSound(kind)
     end
 end
 
+-- Spoken narration: play a rendered voice line for the kind when one exists
+-- (see tools/generate-voice.mjs). Falls back to the sound kit otherwise.
+function N:PlayVoice(kind)
+    local byLocale = self.VOICE
+    local pool = byLocale and byLocale[self.localeKey]
+    local files = pool and pool[kind]
+    if files and files[1] then
+        local file = files[math.random(#files)]
+        pcall(PlaySoundFile, "Interface\\AddOns\\Narrator\\media\\audio\\" .. file, "master")
+        return true
+    end
+    return false
+end
+
 -- ---------------------------------------------------------------------------
 -- Phrase selection: static pools, AI packs (gen.lua), and the procedural
 -- generator. See LOCALES.md for the placeholder reference.
@@ -306,7 +321,9 @@ function N:Say(kind, extraVars, opts)
         header = self.L.headers[kind] or "..."
     end
 
-    self:PlayKindSound(kind)
+    if not (db.voice and self:PlayVoice(kind)) then
+        self:PlayKindSound(kind)
+    end
 
     local mode = db.mode or "toast"
     if mode == "toast" or mode == "both" then
@@ -525,6 +542,9 @@ function SlashCmdList.NARRATOR(msg)
     elseif cmd == "sound" then
         N.db.sound = not N.db.sound
         Print(N.db.sound and S("sound_on") or S("sound_off"))
+    elseif cmd == "voice" then
+        N.db.voice = not N.db.voice
+        Print(N.db.voice and S("voice_on") or S("voice_off"))
     elseif cmd == "media" then
         N.db.media = not N.db.media
         Print(N.db.media and S("media_on") or S("media_off"))

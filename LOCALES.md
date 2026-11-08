@@ -87,6 +87,13 @@ covers Latin scripts. For zhCN/koKR use the client's own font files
 × `closers` × live context (zone, time of day) produce endless combinations.
 Skip it and improvisation falls back to your static phrases.
 
+## Voice lines
+
+Spoken narration is optional per locale: the lines live in the `LINES`
+table of `tools/generate-voice.mjs` (written for the voice, no
+placeholders). A text-only locale simply falls back to text + game sounds;
+add voice lines there and run the tool to give it speech.
+
 ## AI packs
 
 `tools/refresh-phrases.mjs` can mass-generate packs for any locale code —

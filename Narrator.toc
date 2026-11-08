@@ -13,4 +13,5 @@ Locale\enUS.lua
 Locale\esES.lua
 Locale\esMX.lua
 Locale\gen.lua
+Locale\voice.lua
 Toast.lua

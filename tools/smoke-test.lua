@@ -83,6 +83,9 @@ GetItemInfo = function()
     return nil, "Botín Épico", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, 4
 end
 
+playedSounds = {}
+PlaySoundFile = function(path, chan) playedSounds[#playedSounds + 1] = path end
+
 local fireTimerCallbacks = function() end
 
 -- ---------------------------------------------------------------------------
@@ -239,6 +242,21 @@ end
 check(aiHits > 0, "AI packs selected in impro mode")
 N.GENERATED = nil
 N.db.style = "mixed"
+
+print("== voice playback ==")
+Narrator.VOICE = { esES = { death = { "esES/abc123.wav" } } }
+N.db.lang = "esES"
+N:SetLocale()
+N.db.voice = true
+N:Say("death", { name = "X" })
+check(#playedSounds > 0 and playedSounds[#playedSounds]:find("abc123.wav", 1, true) ~= nil,
+    "spoken line played via PlaySoundFile")
+N.db.voice = false
+local soundsBefore = #playedSounds
+N:Say("death", { name = "X" })
+check(#playedSounds == soundsBefore, "voice off plays no audio")
+N.db.voice = true
+Narrator.VOICE = nil
 
 print("== slash handler smoke ==")
 SlashCmdList.NARRATOR("help")

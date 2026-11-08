@@ -32,6 +32,25 @@ solo texto, centrado, elegante. (Se arrastra para moverlo y recuerda su sitio.)
 Las frases saben dónde estás (zona), a qué hora del día y cuántas veces
 has muerto: el generador las usa.
 
+## Narración hablada
+
+El narrador habla. Genera las líneas de voz con:
+
+```
+node tools/generate-voice.mjs
+```
+
+En macOS usa las voces nativas de `say` — Daniel (inglés británico) para
+inglés, Mónica para español — gratis y offline (cámbialas con `--voice`).
+Con `OPENAI_API_KEY` o `ELEVENLABS_API_KEY` obtienes voces de mayor calidad.
+El audio queda en `media/audio/` (fuera del repo) más un manifiesto que el
+addon lee: `/reload` en el juego y cada evento reproduce su línea real —
+hasta tres variantes por evento, elegidas al azar. `/nar voice` lo alterna.
+
+Las líneas habladas están escritas *para la voz* (sin nombres ni cifras
+dinámicas): el audio es por evento, mientras el recuadro de texto mantiene
+la frase exacta con nombres y cantidades.
+
 ## No todo estático — tres fuentes de frases
 
 `/nar style` decide de dónde salen:
@@ -80,6 +99,7 @@ mejor deducción del cliente 1.60.x hasta confirmar en juego).
 /nar demo       pequeña función de gala
 /nar interval <s>   segundos mínimos entre narraciones menores
 /nar crit <0.1-1>   umbral del crítico como fracción de tu vida máxima
+/nar voice     narración hablada sí / no
 /nar sound      silenciar / activar
 /nar media      usar tus propios mp3
 /nar stats      contadores de muerte y gloria
@@ -100,8 +120,11 @@ Core.lua                    eventos, fusión de idiomas, selección y generador
 Toast.lua                   el recuadro estilo BG3 (negro, borde dorado, Morpheus)
 Locale/enUS.lua             idioma POR DEFECTO y base de fallback
 Locale/esES.lua, esMX.lua   español (esMX alias de esES)
-Locale/gen.lua              packs de IA (gestionado por tools/)
-tools/refresh-phrases.mjs   generador con IA (Z.ai / OpenAI / Ollama)
+Locale/gen.lua              packs de frases IA (gestionado por tools/)
+Locale/voice.lua            manifiesto de líneas habladas (gestionado por tools/)
+tools/refresh-phrases.mjs   generador de frases con IA (Z.ai / OpenAI / Ollama)
+tools/generate-voice.mjs    generador de voz TTS (say / OpenAI / ElevenLabs)
+media/audio/                líneas de voz generadas (fuera del repo)
 LOCALES.md                  cómo añadir un idioma (PR en 3 pasos)
 ```
 
