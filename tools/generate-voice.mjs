@@ -231,13 +231,19 @@ function cloudVoiceFor(provider, locale, flagMap) {
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const out = { locales: ["esES", "esMX", "enUS"], rate: 155, provider: null, voice: {}, voiceId: {}, dry: false };
+  const out = { locales: ["esES", "esMX", "enUS"], rate: 155, provider: null, voice: {}, voiceId: {}, providers: {}, dry: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--locales") out.locales = (argv[++i] || "").split(",").map(s => s.trim()).filter(Boolean);
     else if (a === "--rate") out.rate = parseInt(argv[++i], 10) || 155;
     else if (a === "--provider") out.provider = argv[++i];
     else if (a === "--dry") out.dry = true;
+    else if (a === "--providers") {
+      for (const pair of (argv[++i] || "").split(",")) {
+        const [loc, ...rest] = pair.split("=").map(s => s.trim());
+        if (loc && rest.length) out.providers[loc] = rest.join("=");
+      }
+    }
     else if (a === "--voice" || a === "--voice-id") {
       const target = a === "--voice" ? out.voice : out.voiceId;
       for (const pair of (argv[++i] || "").split(",")) {
@@ -386,9 +392,11 @@ function renderManifest(packs) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const provider = pickProvider(args);
-  if (!checkProvider(provider)) process.exit(1);
-  const ext = provider === "say" ? "wav" : "mp3";
-  console.log(`provider: ${provider}  rate: ${args.rate}  locales: ${args.locales.join(",")}`);
+  const providersUsed = new Set([provider, ...Object.values(args.providers || {})]);
+  for (const p of providersUsed) {
+    if (!checkProvider(p)) process.exit(1);
+  }
+  console.log(`provider: ${provider}${Object.keys(args.providers || {}).length ? " (+per-locale overrides)" : ""}  rate: ${args.rate}  locales: ${args.locales.join(",")}`);
 
   const packs = [];
   for (const locale of args.locales) {
@@ -398,48 +406,59 @@ async function main() {
       continue;
     }
     process.stdout.write(`  ${locale} ... `);
+    try {
+      const prov = (args.providers && args.providers[locale]) || provider;
+      const ext = prov === "say" ? "wav" : "mp3";
 
-    const dir = join(AUDIO_DIR, locale);
-    mkdirSync(dir, { recursive: true });
+      const dir = join(AUDIO_DIR, locale);
+      mkdirSync(dir, { recursive: true });
 
-    let sayVoice, cloudVoice;
-    if (provider === "say") sayVoice = await sayVoiceFor(locale, args.voice[locale]);
-    else cloudVoice = cloudVoiceFor(provider, locale, args.voiceId);
-    // Hash signature: changing provider/voice/rate re-renders instead of
-    // silently reusing files spoken by the previous voice.
-    const sig = `${provider}|${sayVoice || cloudVoice}|${args.rate}`;
+      let sayVoice, cloudVoice;
+      if (prov === "say") sayVoice = await sayVoiceFor(locale, args.voice[locale]);
+      else cloudVoice = cloudVoiceFor(prov, locale, args.voiceId);
+      // Hash signature: changing provider/voice/rate re-renders instead of
+      // silently reusing files spoken by the previous voice.
+      const sig = `${prov}|${sayVoice || cloudVoice}|${args.rate}`;
 
-    const files = {};
-    let count = 0;
-    for (const kind of KINDS) {
-      const texts = lines[kind] || [];
-      if (!texts.length) continue;
-      files[kind] = [];
-      for (const text of texts) {
-        const hash = createHash("sha1").update(sig + "|" + locale + text).digest("hex").slice(0, 10);
-        const name = `${locale}/${kind}_${hash}.${ext}`;
-        const path = join(AUDIO_DIR, name);
-        if (existsSync(path)) {
+      const files = {};
+      let count = 0;
+      for (const kind of KINDS) {
+        const texts = lines[kind] || [];
+        if (!texts.length) continue;
+        files[kind] = [];
+        for (const text of texts) {
+          const hash = createHash("sha1").update(sig + "|" + locale + text).digest("hex").slice(0, 10);
+          const name = `${locale}/${kind}_${hash}.${ext}`;
+          const path = join(AUDIO_DIR, name);
+          if (existsSync(path)) {
+            files[kind].push(name);
+            count++;
+            continue;
+          }
+          if (args.dry) {
+            console.log(`\n    would render [${kind}] ${JSON.stringify(text)} (via ${sayVoice || cloudVoice})`);
+            files[kind].push(name);
+            count++;
+            continue;
+          }
+          if (prov === "say") await renderSay(text, path, sayVoice, args.rate);
+          else if (prov === "openai") await renderOpenAI(text, path, cloudVoice);
+          else if (prov === "elevenlabs") await renderEleven(text, path, cloudVoice);
+          else throw new Error("unknown provider " + prov);
           files[kind].push(name);
           count++;
-          continue;
         }
-        if (args.dry) {
-          console.log(`\n    would render [${kind}] ${JSON.stringify(text)}${sayVoice ? ` (${sayVoice})` : ""}`);
-          files[kind].push(name);
-          count++;
-          continue;
-        }
-        if (provider === "say") await renderSay(text, path, sayVoice, args.rate);
-        else if (provider === "openai") await renderOpenAI(text, path, cloudVoice);
-        else if (provider === "elevenlabs") await renderEleven(text, path, cloudVoice);
-        else throw new Error("unknown provider " + provider);
-        files[kind].push(name);
-        count++;
+      }
+      packs.push({ locale, files, count });
+      console.log(`${count} lines (voice: ${sayVoice || cloudVoice})`);
+    } catch (err) {
+      // One locale failing (402 paid_plan_required, network...) shouldn't
+      // kill the rest; note it and move on.
+      console.error(`SKIPPED: ${err.message}`);
+      if (String(err.message).includes("paid_plan_required")) {
+        console.error("  (Voice Library voices need a paid plan; free tier only allows premade voices)");
       }
     }
-    packs.push({ locale, files, count });
-    console.log(`${count} lines (voice: ${sayVoice || cloudVoice})`);
   }
 
   if (!packs.length) {
