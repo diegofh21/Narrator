@@ -47,7 +47,8 @@ enUS (Daniel) on macOS. For cloud providers, pick per-locale voices with
 `--voice-id esMX=<id>,esES=<id>,enUS=<id>` or env vars like
 `ELEVENLABS_VOICE_ID_ESMX` (a global `ELEVENLABS_VOICE_ID` is the fallback).
 Audio lands in `media/audio/` (git-ignored) plus a manifest the addon
-reads: `/reload` in game and every event plays a real voice line — up to
+reads. Filenames encode the voice config and stale renders are swept on
+every run, so switching voices just works — no need to wipe `media/` first: `/reload` in game and every event plays a real voice line — up to
 three variants per event kind, randomly chosen. `/nar voice` toggles it.
 
 Spoken lines are written *for* the voice (no dynamic names or numbers), so

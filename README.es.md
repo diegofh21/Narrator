@@ -48,7 +48,9 @@ Cada idioma habla con su propia voz: esES (Mónica), esMX (Paulina) y enUS
 `--voice-id esMX=<id>,esES=<id>,enUS=<id>` o variables como
 `ELEVENLABS_VOICE_ID_ESMX` (la global `ELEVENLABS_VOICE_ID` sirve de fallback).
 El audio queda en `media/audio/` (fuera del repo) más un manifiesto que el
-addon lee: `/reload` en el juego y cada evento reproduce su línea real —
+addon lee. Los nombres de archivo codifican la voz usada y los audios viejos
+se barren en cada corrida: cambiar de voz simplemente funciona, sin borrar
+`media/` a mano: `/reload` en el juego y cada evento reproduce su línea real —
 hasta tres variantes por evento, elegidas al azar. `/nar voice` lo alterna.
 
 Las líneas habladas están escritas *para la voz* (sin nombres ni cifras

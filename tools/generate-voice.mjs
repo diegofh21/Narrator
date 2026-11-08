@@ -17,11 +17,13 @@
 //   openai     OPENAI_API_KEY  -> gpt-4o-mini-tts, voice "onyx" (mp3)
 //   elevenlabs ELEVENLABS_API_KEY + ELEVENLABS_VOICE_ID  (mp3)
 //
-// Requires Node 18+. Output is idempotent: existing files are kept.
+// Requires Node 18+. Output is idempotent: existing files are kept. Rendered
+// filenames hash the voice config too, so switching voice/provider regenerates
+// automatically, and stale renders are cleaned up after each run.
 
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -364,6 +366,9 @@ async function main() {
     let sayVoice, cloudVoice;
     if (provider === "say") sayVoice = await sayVoiceFor(locale, args.voice[locale]);
     else cloudVoice = cloudVoiceFor(provider, locale, args.voiceId);
+    // Hash signature: changing provider/voice/rate re-renders instead of
+    // silently reusing files spoken by the previous voice.
+    const sig = `${provider}|${sayVoice || cloudVoice}|${args.rate}`;
 
     const files = {};
     let count = 0;
@@ -372,7 +377,7 @@ async function main() {
       if (!texts.length) continue;
       files[kind] = [];
       for (const text of texts) {
-        const hash = createHash("sha1").update(locale + text).digest("hex").slice(0, 10);
+        const hash = createHash("sha1").update(sig + "|" + locale + text).digest("hex").slice(0, 10);
         const name = `${locale}/${kind}_${hash}.${ext}`;
         const path = join(AUDIO_DIR, name);
         if (existsSync(path)) {
@@ -408,7 +413,22 @@ async function main() {
     console.log("\n----- dry run, Locale/voice.lua preview -----\n" + manifest);
   } else {
     writeFileSync(MANIFEST, manifest);
-    console.log(`\nwrote Locale/voice.lua + audio in media/audio/ — /reload in game to hear it.`);
+
+    // Sweep stale renders (old voice, removed lines): keep only what the
+    // fresh manifest references, and only touch our naming pattern.
+    let swept = 0;
+    for (const { locale, files } of packs) {
+      const dir = join(AUDIO_DIR, locale);
+      const keep = new Set(Object.values(files).flat().map(f => f.split("/")[1]));
+      for (const name of readdirSync(dir)) {
+        if (keep.has(name)) continue;
+        if (/^[a-z]+_[0-9a-f]{10}\.(wav|mp3)$/.test(name)) {
+          unlinkSync(join(dir, name));
+          swept++;
+        }
+      }
+    }
+    console.log(`\nwrote Locale/voice.lua + audio in media/audio/ (${swept} stale file(s) swept) — /reload in game to hear it.`);
   }
 }
 
