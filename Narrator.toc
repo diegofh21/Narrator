@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: Narrator
+## Notes: A Baldur's Gate 3 style narrator that comments your deaths, crits, loot and mishaps with ominous, dry-witted narration. English by default; esES/esMX included — see LOCALES.md to add yours.
+## Author: diegofh21
+## Version: 0.2.0
+## SavedVariables: NarratorDB
+## SavedVariablesPerCharacter: NarratorCharDB
+## X-Category: Fun
+## X-Website: https://github.com/diegofh21/Narrator
+
+Core.lua
+Locale\enUS.lua
+Locale\esES.lua
+Locale\esMX.lua
+Locale\gen.lua
+Toast.lua

@@ -1,0 +1,19 @@
+# OS junk
+.DS_Store
+._*
+Thumbs.db
+
+# Personal sound packs — keep copyrighted/bulky mp3s out of the repo
+media/
+*.mp3
+*.ogg
+*.wav
+
+# Never commit API keys for tools/refresh-phrases.mjs
+.env
+.env.*
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
